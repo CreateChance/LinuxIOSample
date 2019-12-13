@@ -10,7 +10,7 @@
 
 /*
  * This will handle connection for each client
- * */
+ */
 void *connection_handler(void *socket_desc) {
     //Get the socket descriptor
     int sock = *(int *) socket_desc;
@@ -19,13 +19,21 @@ void *connection_handler(void *socket_desc) {
     while (1) {
         // read client data.
         read_size = read(sock, buffer, 1024);
-        printf("Read: %s. \n", buffer);
-        if (strncmp("server_quit", buffer, sizeof(buffer)) == 0) {
+        if (read_size <= 0) {
+            puts("Read end of file or error!");
             break;
+        } else {
+            buffer[read_size] = '\0';
+            printf("Read: %s, bytes read: %d. \n", buffer, read_size);
+            if (strncmp("server_quit", buffer, sizeof(read_size)) == 0) {
+                break;
+            }
+            // write back data.
+//        send(sock, buffer, strlen(buffer), 0);
         }
-        // write back data.
-        send(sock, buffer, strlen(buffer), 0);
     }
+
+    puts("Server handle exit now.");
 
     return 0;
 }
@@ -63,11 +71,13 @@ int main(int argc, char const *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    // accept in a loop.
     while ((client_socket = accept(server_fd, (struct sockaddr *) &client, (socklen_t *) &addrlen))) {
         puts("Connection accepted.");
         pthread_t handle_thread;
         int *new_socket = malloc(1);
         *new_socket = client_socket;
+        // create a new thread to handle client connection.
         if (pthread_create((pthread_t *) &handle_thread, NULL, connection_handler, (void *) new_socket) < 0) {
             perror("Create handle thread failed.");
             exit(EXIT_FAILURE);
